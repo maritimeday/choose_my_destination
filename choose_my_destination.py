@@ -336,7 +336,7 @@ def run_choose_my_destination(dlg):
             QgsProject.instance().addMapLayer(vl)
             dlg.append_log('最佳OD路径图层已添加')
             
-            # 高亮最佳目的地（重写：先添加终点和起点feature，最后addMapLayer）
+            # 高亮最佳目的地（重写：先添加终点和起点feature，输出详细日志）
             if best_results:
                 try:
                     best_dest = best_results[0]['dest']
@@ -353,8 +353,9 @@ def run_choose_my_destination(dlg):
                     # 添加终点feature
                     feat_dest = QgsFeature(highlight_vl.fields())
                     feat_dest.setGeometry(QgsGeometry.fromPointXY(best_dest.geometry().asPoint()))
-                    feat_dest.setAttributes(['dest', best_results[0]['dest_id'], best_results[0]['score'], best_results[0]['duration']])
-                    highlight_pr.addFeatures([feat_dest])
+                    feat_dest.setAttributes(['dest', str(best_results[0]['dest_id']), float(best_results[0]['score']), float(best_results[0]['duration'])])
+                    ok1 = highlight_pr.addFeatures([feat_dest])
+                    dlg.append_log(f"终点feature添加结果: {ok1}, 属性: {feat_dest.attributes()}")
                     # 添加起点feature
                     start_text = dlg.lineEdit_start.text().strip()
                     start_xy = dlg.get_start_point()  # (lon, lat) WGS84
@@ -365,13 +366,12 @@ def run_choose_my_destination(dlg):
                         pt_proj = to_proj.transform(pt_wgs)
                         feat_start = QgsFeature(highlight_vl.fields())
                         feat_start.setGeometry(QgsGeometry.fromPointXY(pt_proj))
-                        feat_start.setAttributes(['start', start_text, '', ''])
-                        highlight_pr.addFeatures([feat_start])
-                        dlg.append_log(f"已添加起点高亮: 输入框={start_text}, WGS84={start_xy}, 工程坐标=({pt_proj.x():.4f},{pt_proj.y():.4f})")
+                        feat_start.setAttributes(['start', str(start_text), None, None])
+                        ok2 = highlight_pr.addFeatures([feat_start])
+                        dlg.append_log(f"起点feature添加结果: {ok2}, 属性: {feat_start.attributes()}")
                     else:
                         dlg.append_log(f"未能添加起点高亮，start_xy={start_xy}, start_text={start_text}")
                     highlight_vl.updateExtents()
-                    # 输出feature数量到日志
                     dlg.append_log(f"高亮图层要素数: {highlight_vl.featureCount()}")
                     # 分类渲染：起点蓝色2pt，终点红色2.5pt
                     categories = []
