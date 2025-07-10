@@ -64,43 +64,60 @@
     </widget>
    </item>
    <item>
-    <widget class="QTableWidget" name="tableWidget_fields"/>
+    <widget class="QTableWidget" name="tableWidget_fields">
+     <property name="columnCount">
+      <number>3</number>
+     </property>
+     <property name="horizontalHeaderLabels">
+      <stringlist>
+       <string>字段名</string>
+       <string>权重</string>
+       <string>归一化方式</string>
+      </stringlist>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+       <horstretch>1</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
+     </property>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarAsNeeded</enum>
+     </property>
+     <property name="minimumWidth">
+      <number>400</number>
+     </property>
+     <property name="minimumHeight">
+      <number>80</number>
+     </property>
+    </widget>
    </item>
+   <!-- 删除归一化处理相关 -->
+   <!-- 在字段权重表格下方添加可达性权重和说明 -->
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_normalize">
+    <layout class="QHBoxLayout" name="horizontalLayout_accessibility_weight">
      <item>
-      <widget class="QLabel" name="label_normalize">
+      <widget class="QLabel" name="label_accessibility_weight">
        <property name="text">
-        <string>归一化处理：</string>
+        <string>可达性权重：</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="checkBox_normalize">
+      <widget class="QLineEdit" name="lineEdit_accessibility_weight">
        <property name="text">
-        <string>启用归一化</string>
+        <string>1.0</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_normalize_type">
+      <widget class="QLabel" name="label_accessibility_desc">
        <property name="text">
-        <string>归一化类型：</string>
+        <string>（可达性是由调用高德API计算时间成本得来）</string>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_normalize_type">
-       <item>
-        <property name="text">
-         <string>1-(value-min)/(max-min)</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>(value-min)/(max-min)</string>
-        </property>
-       </item>
       </widget>
      </item>
     </layout>

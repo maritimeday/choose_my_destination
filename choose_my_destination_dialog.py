@@ -62,8 +62,8 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
     def populate_fields(self):
         self.tableWidget_fields.clear()
         selected_fields = self.get_selected_fields()
-        self.tableWidget_fields.setColumnCount(2)
-        self.tableWidget_fields.setHorizontalHeaderLabels(['字段名', '权重'])
+        self.tableWidget_fields.setColumnCount(3)
+        self.tableWidget_fields.setHorizontalHeaderLabels(['字段名', '权重', '归一化方式'])
         self.tableWidget_fields.setRowCount(len(selected_fields))
         for i, fname in enumerate(selected_fields):
             item = QtWidgets.QTableWidgetItem(fname)
@@ -71,6 +71,16 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
             self.tableWidget_fields.setItem(i, 0, item)
             w_edit = QtWidgets.QLineEdit("1.0")
             self.tableWidget_fields.setCellWidget(i, 1, w_edit)
+            norm_combo = QtWidgets.QComboBox()
+            norm_combo.addItems(["无需归一化", "1-(value-min)/(max-min)", "(value-min)/(max-min)"])
+            self.tableWidget_fields.setCellWidget(i, 2, norm_combo)
+        # 三列均匀分配
+        header = self.tableWidget_fields.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.tableWidget_fields.setMinimumWidth(400)
+        self.tableWidget_fields.setMinimumHeight(80)
 
     def populate_modes(self):
         self.comboBox_mode.clear()
@@ -93,67 +103,26 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
     def get_dest_id_field(self):
         return self.comboBox_dest_id_field.currentText()
 
-    def get_normalize_settings(self):
-        """获取归一化设置"""
-        return {
-            'enabled': self.checkBox_normalize.isChecked(),
-            'type': self.comboBox_normalize_type.currentText()
-        }
-
-    def pick_point(self):
-        self.textEdit_log.append("请在地图上点击选择起点...")
-        self._old_map_tool = self.canvas.mapTool()
-        self._pick_tool = QgsMapToolEmitPoint(self.canvas)
-        self._pick_tool.canvasClicked.connect(self.on_map_click)
-        self.canvas.setMapTool(self._pick_tool)
-        # 不做窗口缩小/隐藏/accept等操作，保持窗口原样
-
-    def on_map_click(self, point, button):
-        # 工程坐标转WGS84
-        wgs_pt = self.transformer.transform(point)
-        self.selected_point = (wgs_pt.x(), wgs_pt.y())
-        self.lineEdit_start.setText(f"{wgs_pt.x():.6f},{wgs_pt.y():.6f}")
-        self.textEdit_log.append(f"已选起点: {wgs_pt.x():.6f},{wgs_pt.y():.6f}")
-        # 恢复原有工具
-        if self._old_map_tool:
-            self.canvas.setMapTool(self._old_map_tool)
-        if self._pick_tool:
-            self._pick_tool.canvasClicked.disconnect(self.on_map_click)
-        self._pick_tool = None
-        self._old_map_tool = None
-        # 不做窗口缩小/隐藏/accept等操作，保持窗口原样
-
-    def get_start_point(self):
-        text = self.lineEdit_start.text().strip()
-        if ',' in text:
-            x, y = map(float, text.split(','))
-            # 判断是否为工程坐标（大数值），自动转WGS84
-            if abs(x) > 180 or abs(y) > 90:
-                pt = QgsPointXY(x, y)
-                wgs_pt = self.transformer.transform(pt)
-                return wgs_pt.x(), wgs_pt.y()
-            else:
-                return x, y
-        return None
-
-    def get_layer(self):
-        name = self.comboBox_layer.currentText()
-        for l in QgsProject.instance().mapLayers().values():
-            if l.name() == name:
-                return l
-        return None
-
-    def get_field_weights(self):
-        weights = {}
+    def get_field_settings(self):
+        """返回每个字段的权重和归一化方式"""
+        settings = {}
         for i in range(self.tableWidget_fields.rowCount()):
             field = self.tableWidget_fields.item(i, 0).text()
             w_edit = self.tableWidget_fields.cellWidget(i, 1)
+            norm_combo = self.tableWidget_fields.cellWidget(i, 2)
             try:
                 weight = float(w_edit.text())
             except:
                 weight = 1.0
-            weights[field] = weight
-        return weights
+            norm_type = norm_combo.currentText()
+            settings[field] = {'weight': weight, 'normalize': norm_type}
+        return settings
+
+    def get_accessibility_weight(self):
+        try:
+            return float(self.lineEdit_accessibility_weight.text())
+        except:
+            return 1.0
 
     def get_mode(self):
         text = self.comboBox_mode.currentText()
@@ -187,4 +156,46 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
     def browse_export_path(self):
         filename, _ = QFileDialog.getSaveFileName(self, "选择导出CSV文件", "", "CSV Files (*.csv)")
         if filename:
-            self.lineEdit_export_path.setText(filename) 
+            self.lineEdit_export_path.setText(filename)
+
+    def pick_point(self):
+        self.textEdit_log.append("请在地图上点击选择起点...")
+        self._old_map_tool = self.canvas.mapTool()
+        from qgis.gui import QgsMapToolEmitPoint
+        self._pick_tool = QgsMapToolEmitPoint(self.canvas)
+        self._pick_tool.canvasClicked.connect(self.on_map_click)
+        self.canvas.setMapTool(self._pick_tool)
+
+    def on_map_click(self, point, button):
+        # 工程坐标转WGS84
+        wgs_pt = self.transformer.transform(point)
+        self.selected_point = (wgs_pt.x(), wgs_pt.y())
+        self.lineEdit_start.setText(f"{wgs_pt.x():.6f},{wgs_pt.y():.6f}")
+        self.textEdit_log.append(f"已选起点: {wgs_pt.x():.6f},{wgs_pt.y():.6f}")
+        # 恢复原有工具
+        if self._old_map_tool:
+            self.canvas.setMapTool(self._old_map_tool)
+        if self._pick_tool:
+            self._pick_tool.canvasClicked.disconnect(self.on_map_click)
+        self._pick_tool = None
+        self._old_map_tool = None 
+
+    def get_layer(self):
+        name = self.comboBox_layer.currentText()
+        for l in QgsProject.instance().mapLayers().values():
+            if l.name() == name:
+                return l
+        return None 
+
+    def get_start_point(self):
+        text = self.lineEdit_start.text().strip()
+        if ',' in text:
+            x, y = map(float, text.split(','))
+            # 判断是否为工程坐标（大数值），自动转WGS84
+            if abs(x) > 180 or abs(y) > 90:
+                pt = QgsPointXY(x, y)
+                wgs_pt = self.transformer.transform(pt)
+                return wgs_pt.x(), wgs_pt.y()
+            else:
+                return x, y
+        return None 

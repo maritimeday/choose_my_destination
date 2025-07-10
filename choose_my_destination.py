@@ -137,9 +137,11 @@ def run_choose_my_destination(dlg):
     else:
         start_layer = None
     dest_layer = dlg.get_layer()
-    field_weights = dlg.get_field_weights()
+    field_settings = dlg.get_field_settings()
     dest_id_field = dlg.get_dest_id_field()
-    normalize_settings = dlg.get_normalize_settings()
+    # 移除normalize_settings相关
+    # normalize_settings = dlg.get_normalize_settings()  # 删除此行
+    # 主逻辑其它地方不再用normalize_settings，全部用field_settings和accessibility_weight
     mode = dlg.get_mode()
     export_path = dlg.get_export_path()
     key = dlg.get_key()
@@ -185,7 +187,7 @@ def run_choose_my_destination(dlg):
             duration, distance = get_travel_time_amap(s_wgs_tuple, d_wgs_tuple, mode, key, city, dlg)
             # 添加延时避免API请求过于频繁
             time.sleep(0.5)  # 每次请求间隔0.5秒
-            attrs = {field: d[field] for field in field_weights if field in d.fields().names()}
+            attrs = {field: d[field] for field in field_settings if field in d.fields().names()}
             attrs['可达性'] = duration
             attrs['距离'] = distance
             # 获取目的地ID字段值
@@ -199,34 +201,37 @@ def run_choose_my_destination(dlg):
             if duration == float('inf'):
                 dlg.append_log(f"起点{sidx}→终点{didx} 可达性: infs")
             else:
-                dlg.append_log(f"起点{sidx}→终点{didx} 可达性: {duration:.1f}s, 距离: {distance:.1f}m")
+                dest_id_val = d[dest_id_field] if dest_id_field in d.fields().names() else d.id()
+                dlg.append_log(f"起点→终点[{dest_id_val}] 可达性: {duration:.1f}s, 距离: {distance:.1f}m")
         # 标准化与加权得分
-        all_fields = list(field_weights.keys()) + ['可达性']
-        if normalize_settings['enabled']:
-            for field in all_fields:
-                values = [r['attrs'][field] for r in od_rows]
-                if all(isinstance(v, (int, float)) for v in values):
-                    min_v, max_v = min(values), max(values)
-                    for r in od_rows:
-                        if max_v > min_v:
-                            if field == '可达性' and normalize_settings['type'] == '1-(value-min)/(max-min)':
-                                # 可达性特殊处理：1-(cost-min)/(max-min)，这样耗时越短值越大
-                                r['attrs'][field] = 1 - (r['attrs'][field] - min_v) / (max_v - min_v)
-                            else:
-                                # 其他字段或可达性的另一种归一化方式
-                                r['attrs'][field] = (r['attrs'][field] - min_v) / (max_v - min_v)
+        accessibility_weight = dlg.get_accessibility_weight()
+        all_fields = list(field_settings.keys()) + ['可达性']
+        # 归一化处理
+        for field in all_fields:
+            values = [r['attrs'][field] for r in od_rows]
+            if all(isinstance(v, (int, float)) for v in values):
+                min_v, max_v = min(values), max(values)
+                for r in od_rows:
+                    norm_type = field_settings[field]['normalize'] if field in field_settings else '无需归一化'
+                    if max_v > min_v:
+                        if norm_type == '1-(value-min)/(max-min)' and field != '可达性':
+                            r['attrs'][field] = 1 - (r['attrs'][field] - min_v) / (max_v - min_v)
+                        elif norm_type == '(value-min)/(max-min)' and field != '可达性':
+                            r['attrs'][field] = (r['attrs'][field] - min_v) / (max_v - min_v)
+                        elif field == '可达性':
+                            # 可达性默认1-(cost-min)/(max-min)
+                            r['attrs'][field] = 1 - (r['attrs'][field] - min_v) / (max_v - min_v)
                         else:
-                            r['attrs'][field] = 0.0
+                            r['attrs'][field] = r['attrs'][field]
+                    else:
+                        r['attrs'][field] = 0.0
         for r in od_rows:
-            score = sum(r['attrs'][field] * field_weights[field] for field in field_weights if isinstance(r['attrs'][field], (int, float)))
-            # 可达性得分处理
-            if normalize_settings['enabled']:
-                # 如果启用了归一化，可达性已经标准化为正值
-                score += r['attrs']['可达性'] * field_weights.get('可达性', 1.0)
-            else:
-                # 如果没有启用归一化，可达性越小越好，所以用负值
-                accessibility_score = -r['attrs']['可达性'] * field_weights.get('可达性', 1.0)
-                score += accessibility_score
+            score = 0.0
+            for field in field_settings:
+                weight = field_settings[field]['weight']
+                score += r['attrs'][field] * weight
+            # 可达性得分
+            score += r['attrs']['可达性'] * accessibility_weight
             r['score'] = score
         # 选出最优终点（得分最高）
         best = max(od_rows, key=lambda r: r['score'])
@@ -247,12 +252,12 @@ def run_choose_my_destination(dlg):
                 writer = csv.writer(f)
                 # 字段头
                 start_fields = ['start_id']
-                dest_fields = ['dest_id'] + list(field_weights.keys())
+                dest_fields = ['dest_id'] + list(field_settings.keys())
                 writer.writerow(start_fields + dest_fields + ['duration', 'distance', 'score'])
                 for r in all_results:
                     s_id = r['start'].id() if start_layer else 0
                     d_id = r['dest_id']  # 使用选择的目的地ID字段值
-                    dest_vals = [r['dest'][field] if field in r['dest'].fields().names() else '' for field in field_weights]
+                    dest_vals = [r['dest'][field] if field in r['dest'].fields().names() else '' for field in field_settings]
                     writer.writerow([s_id] + [d_id] + dest_vals + [r['duration'], r['distance'], r.get('score', '')])
             dlg.append_log(f'已导出所有OD路径csv：{csv_path}')
         except Exception as e:
@@ -272,7 +277,7 @@ def run_choose_my_destination(dlg):
                 QgsField('duration', 6, 'double'),
                 QgsField('distance', 6, 'double'),
                 QgsField('score', 6, 'double'),
-            ] + [QgsField(f, 10) for f in field_weights])
+            ] + [QgsField(f, 10) for f in field_settings])
             vl.updateFields()
             for r in best_results:
                 if r['duration'] == float('inf'):
@@ -292,7 +297,7 @@ def run_choose_my_destination(dlg):
                     feat = QgsFeature()
                     feat.setGeometry(QgsGeometry.fromPolylineXY(points))
                     attrs = [r['start'].id() if start_layer else 0, r['dest_id'], r['duration'], r['distance'], r.get('score', '')]
-                    attrs += [r['dest'][f] if f in r['dest'].fields().names() else '' for f in field_weights]
+                    attrs += [r['dest'][f] if f in r['dest'].fields().names() else '' for f in field_settings]
                     feat.setAttributes(attrs)
                     pr.addFeatures([feat])
                 except Exception as e:
