@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/choose_my_destination" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>

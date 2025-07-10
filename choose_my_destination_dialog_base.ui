@@ -1,0 +1,181 @@
+<ui version="4.0">
+ <class>ChooseMyDestinationDialogBase</class>
+ <widget class="QDialog" name="ChooseMyDestinationDialogBase">
+  <property name="windowTitle">
+   <string>Choose My Destination</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_start">
+     <property name="text">
+      <string>起点坐标：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_start">
+     <item>
+      <widget class="QLineEdit" name="lineEdit_start"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_pick_point">
+       <property name="text">
+        <string>地图选点</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_layer">
+     <property name="text">
+      <string>目的地图层：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="comboBox_layer"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_dest_id_field">
+     <property name="text">
+      <string>目的地ID字段：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="comboBox_dest_id_field"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_fields">
+     <property name="text">
+      <string>指标及权重：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QListWidget" name="listWidget_field_select">
+     <property name="selectionMode">
+      <enum>QAbstractItemView::MultiSelection</enum>
+     </property>
+     <property name="minimumHeight">
+      <number>60</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTableWidget" name="tableWidget_fields"/>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_normalize">
+     <item>
+      <widget class="QLabel" name="label_normalize">
+       <property name="text">
+        <string>归一化处理：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBox_normalize">
+       <property name="text">
+        <string>启用归一化</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_normalize_type">
+       <property name="text">
+        <string>归一化类型：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBox_normalize_type">
+       <item>
+        <property name="text">
+         <string>1-(value-min)/(max-min)</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>(value-min)/(max-min)</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_mode">
+     <property name="text">
+      <string>出行方式：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="comboBox_mode"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_key">
+     <property name="text">
+      <string>高德Key：</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="lineEdit_key"/>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBox_export_path">
+     <property name="text">
+      <string>导出路径图层</string>
+     </property>
+    </widget>
+   </item>
+   <!-- 新增导出CSV路径输入框 -->
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_export_path">
+     <item>
+      <widget class="QLabel" name="label_export_path">
+       <property name="text">
+        <string>OD汇总CSV路径：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_export_path"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_browse_export_path">
+       <property name="text">
+        <string>浏览...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QTextEdit" name="textEdit_log">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>运行日志将在此显示...</string>
+   </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="button_box">
+     <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+     <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
