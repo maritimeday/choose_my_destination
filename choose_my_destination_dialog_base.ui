@@ -172,24 +172,48 @@
     </layout>
    </item>
    <item>
-    <widget class="QTextEdit" name="textEdit_log">
-     <property name="readOnly">
-      <bool>true</bool>
+    <widget class="QProgressBar" name="progressBar">
+     <property name="minimum">
+      <number>0</number>
      </property>
-     <property name="placeholderText">
-      <string>运行日志将在此显示...</string>
+     <property name="maximum">
+      <number>100</number>
+     </property>
+     <property name="value">
+      <number>0</number>
+     </property>
+     <property name="textVisible">
+      <bool>true</bool>
    </property>
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="button_box">
-     <property name="orientation">
-    <enum>Qt::Horizontal</enum>
+    <widget class="QTextEdit" name="textEdit_log">
+     <property name="readOnly">
+      <bool>true</bool>
    </property>
-     <property name="standardButtons">
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     <property name="placeholderText">
+      <string>运行日志将在此显示...</string>
    </property>
   </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_analysis_buttons">
+     <item>
+      <widget class="QPushButton" name="btn_start_analysis">
+       <property name="text">
+        <string>开始分析</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_stop_analysis">
+       <property name="text">
+        <string>停止分析</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

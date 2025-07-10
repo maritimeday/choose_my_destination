@@ -4,6 +4,7 @@ from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.core import QgsProject, QgsCoordinateTransform, QgsCoordinateReferenceSystem, QgsPointXY
 from qgis.gui import QgsMapToolEmitPoint
 from qgis.utils import iface
+from qgis.PyQt.QtCore import QVariant
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'choose_my_destination_dialog_base.ui'))
@@ -16,7 +17,8 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
         self.btn_browse_export_path.clicked.connect(self.browse_export_path)
         self.comboBox_layer.currentIndexChanged.connect(self.on_layer_changed)
         self.listWidget_field_select.itemSelectionChanged.connect(self.populate_fields)
-        self.button_box.accepted.connect(self.run_main_logic)
+        self.btn_start_analysis.clicked.connect(self.run_main_logic)
+        self.btn_stop_analysis.clicked.connect(self.stop_analysis)
         self.populate_layers()
         self.populate_modes()
         self.on_layer_changed()
@@ -28,6 +30,10 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_start.setPlaceholderText('支持工程坐标或WGS84经纬度，格式：x,y')
         self._old_map_tool = None
         self._pick_tool = None
+        # 进度条初始化
+        if hasattr(self, 'progressBar'):
+            self.progressBar.hide()
+        self.progressBar.setVisible(True)  # 强制显示进度条
 
     def populate_layers(self):
         self.comboBox_layer.clear()
@@ -50,11 +56,12 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
                 break
         if not lyr:
             return
-        fields = [f.name() for f in lyr.fields()]
-        for fname in fields:
-            item = QtWidgets.QListWidgetItem(fname)
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            self.listWidget_field_select.addItem(item)
+        for f in lyr.fields():
+            # 只显示数值型字段
+            if f.type() in (QVariant.Int, QVariant.Double, QVariant.LongLong, QVariant.UInt, QVariant.ULongLong):
+                item = QtWidgets.QListWidgetItem(f.name())
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                self.listWidget_field_select.addItem(item)
 
     def get_selected_fields(self):
         return [item.text() for item in self.listWidget_field_select.selectedItems()]
@@ -148,10 +155,15 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def run_main_logic(self):
         try:
-            from .choose_my_destination import run_choose_my_destination  # 延迟导入，避免循环
+            self._stop_requested = False
+            from .choose_my_destination import run_choose_my_destination
             run_choose_my_destination(self)
         except Exception as e:
             self.append_log(f"运行出错: {e}")
+
+    def stop_analysis(self):
+        self._stop_requested = True
+        self.append_log("已请求停止分析，当前任务完成后将中断。")
 
     def browse_export_path(self):
         filename, _ = QFileDialog.getSaveFileName(self, "选择导出CSV文件", "", "CSV Files (*.csv)")
@@ -178,7 +190,11 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
         if self._pick_tool:
             self._pick_tool.canvasClicked.disconnect(self.on_map_click)
         self._pick_tool = None
-        self._old_map_tool = None 
+        self._old_map_tool = None
+        # 选点后自动弹出插件窗口
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
 
     def get_layer(self):
         name = self.comboBox_layer.currentText()
