@@ -30,6 +30,7 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
         self.lineEdit_start.setPlaceholderText('支持工程坐标或WGS84经纬度，格式：x,y')
         self._old_map_tool = None
         self._pick_tool = None
+        self.btn_refresh.clicked.connect(self.refresh_layers)
         # 进度条初始化
         if hasattr(self, 'progressBar'):
             self.progressBar.hide()
@@ -46,6 +47,18 @@ class ChooseMyDestinationDialog(QtWidgets.QDialog, FORM_CLASS):
         self.populate_dest_id_fields()
         self.populate_fields()
 
+    def refresh_layers(self):
+        from qgis.core import QgsProject
+        self.comboBox_origin_layer.clear()
+        self.comboBox_dest_layer.clear()
+        layers = [lyr for lyr in QgsProject.instance().mapLayers().values() if lyr.type() == 0 and lyr.geometryType() in (0, 4)]
+        for lyr in layers:
+            self.comboBox_origin_layer.addItem(lyr.name())
+            self.comboBox_dest_layer.addItem(lyr.name())
+        self.populate_origin_fields()
+        self.populate_dest_fields()
+
+        
     def populate_field_select(self):
         self.listWidget_field_select.clear()
         layer_name = self.comboBox_layer.currentText()

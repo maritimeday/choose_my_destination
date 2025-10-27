@@ -143,9 +143,6 @@ def run_choose_my_destination(dlg):
     field_settings = dlg.get_field_settings()
     accessibility_weight = dlg.get_accessibility_weight()  # 确保此处定义
     dest_id_field = dlg.get_dest_id_field()
-    # 移除normalize_settings相关
-    # normalize_settings = dlg.get_normalize_settings()  # 删除此行
-    # 主逻辑其它地方不再用normalize_settings，全部用field_settings和accessibility_weight
     mode = dlg.get_mode()
     export_path = dlg.get_export_path()
     key = dlg.get_key()
